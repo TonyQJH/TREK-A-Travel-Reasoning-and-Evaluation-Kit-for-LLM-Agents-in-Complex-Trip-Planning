@@ -667,7 +667,12 @@ class TravelPlanScorer:
             if days_with_car >= target_days:
                 matched += 1
 
-        return matched / len(checks) if checks else None
+        # D0-key is an ALL-OR-NOTHING hard constraint: an explicitly requested plan is satisfied
+        # only if EVERY required element is present. Partial credit is misleading here---a plan
+        # missing a mandated leg, entity, or day does not fulfil the request.
+        if not checks:
+            return None
+        return 1.0 if matched == len(checks) else 0.0
     
     def score_d0_source(self, plan_data: dict, meta: QueryMeta) -> float:
         """D0-2: 数据一致性验证 (KB grounding)。
@@ -812,7 +817,9 @@ class TravelPlanScorer:
             else:
                 actual_folded = {_fold(c) for c in actual_cities}
                 matched = sum(1 for c in expected_cities if _fold(c) in actual_folded)
-                score = matched / len(expected_cities)
+                # ALL-OR-NOTHING: destination coverage is a hard constraint---visiting a subset of
+                # the requested cities does not fulfil the request, so a missed city fails D2.
+                score = 1.0 if matched == len(expected_cities) else 0.0
         
         # 确定维度
         # is_ordered = meta.is_ordered  # Ignored as per user request (confirmed no ordered queries)
@@ -1093,13 +1100,12 @@ class TravelPlanScorer:
 
                 if has_hallucination:
                     return 0.0
-                # A refusal must DIAGNOSE, not just decline. Credit is split between the correct
-                # decision and the correct cause, so 'I refuse' no longer scores the same as
-                # correctly identifying which of the three impossibilities applies. Before this,
-                # 267 tasks (33% of the benchmark) turned on a single boolean.
+                # A refusal must DIAGNOSE, not just decline. ALL-OR-NOTHING: correctly handling an
+                # infeasible task means naming the RIGHT typed cause; a bare "I refuse" or a wrong
+                # cause has not solved the typed-infeasibility task, so it scores 0, not partial.
                 truth = true_impossibility_class(meta, self.db)
                 stated = stated_impossibility_class(plan_data.get("refusal_reason"))
-                return 1.0 if stated == truth else 0.5
+                return 1.0 if stated == truth else 0.0
             else:
                 # 错误地提供了计划（应该拒绝）
                 return 0.0
@@ -1573,6 +1579,21 @@ def compute_aggregate_scores(results: list[ScoreResult]) -> dict:
     def avg_non_none(values):
         valid = [v for v in values if v is not None]
         return sum(valid) / len(valid) if valid else None
+
+    def category_conjunction(attrs):
+        """ALL-OR-NOTHING at the category level: a task PASSES a category iff EVERY applicable
+        (non-None) dimension in it scores 1.0; the category score is the fraction of tasks (with at
+        least one applicable dimension) that pass. This makes a category an honest "was this whole
+        requirement group met?" rather than a mean that one strong dimension can prop up."""
+        num = den = 0
+        for r in results:
+            vals = [getattr(r, a) for a in attrs if getattr(r, a) is not None]
+            if not vals:
+                continue
+            den += 1
+            if all(v >= 1.0 for v in vals):
+                num += 1
+        return (num / den) if den else None
     
     agg = {
         "d0_keyword": avg_non_none([r.d0_keyword for r in results]),
@@ -1589,9 +1610,12 @@ def compute_aggregate_scores(results: list[ScoreResult]) -> dict:
     
     # ========== 四大类评分 (25% 权重) ==========
     # 1. 约束满足 (Satisfaction): D0-keyword, D1-implicit, D2-city, D3-budget
-    d2_combined = avg_non_none([agg["d2_unord_single"], agg["d2_unord_multi"]])
-    satisfaction_scores = [agg["d0_keyword"], agg["d1_implicit"], d2_combined, agg["d3_budget"]]
-    cat_satisfaction = avg_non_none(satisfaction_scores)
+    # Constraint Satisfaction is ALL-OR-NOTHING: a task is satisfied only if EVERY explicit element,
+    # EVERY implicit persona need, EVERY required city, and the budget are all met. Partial credit
+    # is misleading here---a plan that meets three of four requirement groups still fails to give the
+    # traveller what they asked for. (The agent is explicitly told the persona needs are scored.)
+    cat_satisfaction = category_conjunction(
+        ("d0_keyword", "d1_implicit", "d2_unord_single", "d2_unord_multi", "d3_budget"))
     
     # 2. 数据真实性 (Truthfulness): D0-source
     cat_truthfulness = agg["d0_source"]
@@ -1601,8 +1625,10 @@ def compute_aggregate_scores(results: list[ScoreResult]) -> dict:
     # (delivering anything substantive scores 1.0), so folding it in propped the category up and
     # diluted real scheduling failures: an itinerary that put every visit outside opening hours
     # still cleared 0.5 on Reasoning purely because D4 handed it a free 1.0.
-    reasoning_scores = [agg["b2_opening_hours"], agg["b3_spatiotemporal"]]
-    cat_reasoning = avg_non_none(reasoning_scores)
+    # Executability is ALL-OR-NOTHING: a plan is executable only if EVERY attraction visit is within
+    # opening hours AND EVERY same-day transition is physically reachable in the time allotted. One
+    # infeasible hop makes a day the traveller cannot actually follow.
+    cat_reasoning = category_conjunction(("b2_opening_hours", "b3_spatiotemporal"))
     # Infeasibility detection is its own headline number over the 267 infeasible tasks — a third of
     # the benchmark that previously drove only 2.78% of the score.
     #
