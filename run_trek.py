@@ -9,7 +9,7 @@ via --models / --models-file.
 
 Examples:
   # smoke-test the whole chain on 2 queries with one model
-  python run_trek.py --models us.anthropic.claude-haiku-4-5-20251001-v1:0 --limit 2
+  python run_trek.py --models moonshotai.kimi-k2.5 --limit 2
 
   # full run over several models at high concurrency
   python run_trek.py --models-file trek_models.json --concurrency 16

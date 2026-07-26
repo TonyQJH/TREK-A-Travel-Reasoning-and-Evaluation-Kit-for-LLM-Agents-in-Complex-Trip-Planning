@@ -111,7 +111,7 @@ Provide AWS credentials (see **Credentials** below), start the sandbox, then:
 
 ```bash
 # a quick 2-task smoke test with one model
-python run_trek.py --models us.anthropic.claude-haiku-4-5-20251001-v1:0 --limit 2 \
+python run_trek.py --models moonshotai.kimi-k2.5 --limit 2 \
                    --api-url http://localhost:5001
 
 # the full 15-model run reported in the paper
