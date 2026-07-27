@@ -1482,7 +1482,10 @@ class TravelPlanScorer:
         if not meta.impossible and not plan_data["is_feasible"]:
             result.d0_keyword = 0.0
             result.d0_source = 0.0
-            result.d1_implicit = 0.0
+            # D1 applicability is task-derived: a task with NO persona is inapplicable (None) even
+            # when wrongly refused---setting it 0.0 here made the D1 denominator submission-dependent
+            # (a model that refused more no-persona feasible tasks was averaged over more tasks).
+            result.d1_implicit = 0.0 if meta.implicit_keywords else None
             # D2: 根据城市数量设置对应维度为 0
             if meta.cities_count == 1:
                 result.d2_unord_single = 0.0
@@ -1497,24 +1500,20 @@ class TravelPlanScorer:
             result.task_success = False
             return result
         
-        # [新增] 检测 False Positive: 不可行任务被错误接受
-        # 如果任务是不可行的 (impossible=True) 但 LLM 生成了计划 (is_feasible=True)
-        # 则所有维度给 0 分，严厉惩罚这种错误
+        # [O5 / task-derived applicability] False Positive: an INFEASIBLE task the agent wrongly
+        # answered with a plan (impossible=True, is_feasible=True). The failure is fully captured by
+        # D4=0.0 (it should have refused) and by task_success/task_perfect=False. The feasible-only
+        # dimensions are OUT OF SCOPE on an infeasible task, so they stay None (their ScoreResult
+        # default) — NOT 0.0. Scoring them 0.0 here (a) double-penalised the non-refusal (once on D4,
+        # again on Sat/Tru/Exe) and (b) leaked the infeasible task into the feasible-dimension
+        # denominators, making n_scored submission-dependent — violating the invariant that
+        # applicability is a property of the TASK, identical for every model (see
+        # compute_aggregate_scores and §4). Symmetric to the correct-refusal branch below, which
+        # already scores only D4.
         if meta.impossible and plan_data["is_feasible"]:
-            result.d0_keyword = 0.0
-            result.d0_source = 0.0
-            result.d1_implicit = 0.0
-            # D2: 根据城市数量设置对应维度为 0
-            if meta.cities_count == 1:
-                result.d2_unord_single = 0.0
-            else:
-                result.d2_unord_multi = 0.0
-            result.d3_budget = 0.0 if meta.budget > 0 else None
-            result.d4_impossible = 0.0  # 核心惩罚
-            result.d5_retry = 0.0
-            result.b2_opening_hours = 0.0
-            result.b3_spatiotemporal = 0.0
+            result.d4_impossible = 0.0  # failed to refuse an impossible request
             result.total_cost = 0.0
+            result.task_success = False
             return result
 
         # [O5] 正确拒绝: 不可行任务且模型拒绝 (impossible=True, is_feasible=False)。
