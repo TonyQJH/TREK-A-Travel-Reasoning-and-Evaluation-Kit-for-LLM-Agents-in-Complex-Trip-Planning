@@ -497,7 +497,7 @@ _PID = {i + 1: p for i, p in enumerate(PERSONAS)}
 
 # The v1 rule set (19 hand-written pairs; Text/appendix.tex:312-319). RETIRED 2026-07-19 —
 # kept only so the paper rewrite can cite what changed. An audit of all 105,335 v2 KB
-# resources found the KB tags BOTH members of every "conflicting" pair on 2,327-6,276
+# resources found the KB tags BOTH members of every "conflicting" pair on 2,327-6,269
 # resources, versus a 5,529 median for the pairs the same rules called legal: the asserted
 # conflicts were statistically indistinguishable from the permitted ones. Several also
 # encoded age/disability stereotypes ("nightlife enthusiast" x "disabled traveler",
