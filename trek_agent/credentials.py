@@ -71,8 +71,8 @@ class AWSCreds:
 
 
 def _find_default_file() -> Optional[str]:
-    here = os.path.dirname(os.path.abspath(__file__))          # .../KDD_travelbench/trek_agent
-    root = os.path.dirname(here)                               # .../KDD_travelbench
+    here = os.path.dirname(os.path.abspath(__file__))          # <repo>/trek_agent
+    root = os.path.dirname(here)                               # <repo>
     parent = os.path.dirname(root)                             # project root
     for cand in (os.path.join(parent, "apieky"), os.path.join(root, "apieky"),
                  os.path.join(parent, "apikey"), os.path.join(root, "apikey")):

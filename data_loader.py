@@ -1,5 +1,5 @@
 """
-KDD Travel Planning - Data Loader Module
+TREK - Data Loader Module
 =========================================
 提供查询元数据加载和沙箱数据库访问功能。
 """

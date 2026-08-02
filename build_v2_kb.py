@@ -17,8 +17,7 @@ Outputs (created under api/data/):
   new_travelbench/merged_query_v2.csv
   KB_AUDIT_v2.md  (audit report)
 
-Run from project root:
-  cd /Users/jinhuqi/Downloads/KDD2026.../KDD_travelbench
+Run from the repository root:
   python3 build_v2_kb.py
 """
 import pandas as pd

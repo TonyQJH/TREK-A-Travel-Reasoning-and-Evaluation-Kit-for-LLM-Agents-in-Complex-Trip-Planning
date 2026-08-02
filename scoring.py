@@ -1,5 +1,5 @@
 """
-KDD Travel Planning - Scoring Script
+TREK - Scoring Script
 =====================================
 多维度评分系统，评估 LLM 生成的旅行计划质量。
 
@@ -1858,7 +1858,7 @@ def process_single_query(args):
 
 # ============ 主程序 ============
 def main():
-    parser = argparse.ArgumentParser(description="KDD Travel Planning Scoring Script")
+    parser = argparse.ArgumentParser(description="TREK Scoring Script")
     parser.add_argument("--input", "-i", required=True, help="Input JSON file (LLM pipeline output)")
     parser.add_argument("--meta", "-m", required=True, help="Query metadata CSV file")
     parser.add_argument("--output", "-o", help="Output scores CSV file")

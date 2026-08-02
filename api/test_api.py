@@ -1,5 +1,5 @@
 """
-KDD 旅游规划 API 系统 - 综合测试脚本
+TREK 旅游规划 API 系统 - 综合测试脚本
 测试所有 API 端点的功能、边界条件和性能
 """
 
@@ -395,7 +395,7 @@ def test_response_time():
 def run_all_tests():
     """执行所有测试"""
     print(f"\n{Colors.YELLOW}{'='*60}{Colors.END}")
-    print(f"{Colors.YELLOW}KDD 旅游规划 API 系统 - 综合测试{Colors.END}")
+    print(f"{Colors.YELLOW}TREK 旅游规划 API 系统 - 综合测试{Colors.END}")
     print(f"{Colors.YELLOW}测试开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.END}")
     print(f"{Colors.YELLOW}{'='*60}{Colors.END}")
     

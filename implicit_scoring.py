@@ -1,5 +1,5 @@
 """
-KDD Travel Planning - Implicit Requirements Scoring Module (D1)
+TREK - Implicit Requirements Scoring Module (D1)
 ================================================================
 基于隐式需求详细配置表的结构化评分逻辑。
 
