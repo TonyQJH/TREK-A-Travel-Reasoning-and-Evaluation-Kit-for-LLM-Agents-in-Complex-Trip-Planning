@@ -48,9 +48,7 @@ consistent knowledge base of **212,530 records** across **375 cities** and **13 
 ## Installation
 
 ```bash
-git clone https://github.com/TonyQJH/TREK-A-Travel-Reasoning-and-Evaluation-Kit-for-LLM-Agents-in-Complex-Trip-Planning.git
-cd TREK-A-Travel-Reasoning-and-Evaluation-Kit-for-LLM-Agents-in-Complex-Trip-Planning
-
+# Download this repository and enter it, then:
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt          # core: evaluator + agent runner
 pip install -r api/requirements.txt      # extra: the tool sandbox (faiss, torch, ...)
@@ -174,11 +172,5 @@ The synthetic prices, schedules, and availability **must not be used as real tra
 
 ## Citation
 
-```bibtex
-@inproceedings{trek2027,
-  title     = {TREK: A Travel Reasoning and Evaluation Kit for LLM Agents in Complex Trip Planning},
-  author    = {Qi, Jinhu and others},
-  booktitle = {Proceedings of the ACM SIGKDD Conference on Knowledge Discovery and Data Mining},
-  year      = {2027}
-}
-```
+This repository accompanies a paper currently **under double-blind review**. Author and venue
+details are withheld during the review period; a full citation will be added on acceptance.
