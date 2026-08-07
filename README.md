@@ -172,13 +172,21 @@ or two bare lines); it is git-ignored. See `trek_agent/credentials.py`.
 Code is released under the **MIT License**; the dataset under **CC BY 4.0**. See [`LICENSE`](LICENSE).
 The synthetic prices, schedules, and availability **must not be used as real travel information**.
 
+## Status
+
+The accompanying paper has just been submitted and is **currently under peer review**. It has
+**not** been accepted, and no results should be described as published. This section will be
+updated with the full citation once a decision is announced.
+
 ## Citation
 
+Until then, please cite the manuscript:
+
 ```bibtex
-@inproceedings{trek2027,
-  title     = {TREK: A Travel Reasoning and Evaluation Kit for LLM Agents in Complex Trip Planning},
-  author    = {Qi, Jinhu and others},
-  booktitle = {Proceedings of the ACM SIGKDD Conference on Knowledge Discovery and Data Mining},
-  year      = {2027}
+@misc{trek2026,
+  title  = {TREK: A Travel Reasoning and Evaluation Kit for LLM Agents in Complex Trip Planning},
+  author = {Qi, Jinhu and others},
+  year   = {2026},
+  note   = {Manuscript under review}
 }
 ```
