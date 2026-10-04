@@ -7,6 +7,7 @@ TREK - Data Loader Module
 import os
 import ast
 import re
+import math
 import pandas as pd
 from dataclasses import dataclass, field
 import unicodedata
@@ -312,6 +313,73 @@ class SandboxDB:
         if df.empty:
             return False
         return any(df["car_type"].astype(str).str.strip().str.lower() == str(car_type).strip().lower())
+
+    def get_car_capacity(self, car_type: str, city: str, car_id=None,
+                         claimed_price=None) -> Optional[float]:
+        """Resolve a booking's seat count from the KB, never from its claimed capacity.
+
+        A city/type can name several records. If they all have the same valid seat count,
+        that count is unambiguous without selecting a particular price/service variant.
+        Otherwise a matching car_id, or an exact quoted daily price, must resolve the
+        capacity. Conflicting or missing capacities fail closed; taking the largest or
+        nearest-price candidate would let an undersized booking pass.
+        """
+        if not isinstance(car_type, str) or not car_type.strip() or not city:
+            return None
+        df = self.get_cars(city)
+        if df.empty or not {"car_type", "capacity"}.issubset(df.columns):
+            return None
+        matches = df[df["car_type"].astype(str).str.strip().str.lower()
+                     == car_type.strip().lower()]
+
+        def common_capacity(rows):
+            if rows.empty:
+                return None
+            values = pd.to_numeric(rows["capacity"], errors="coerce")
+            if not all(pd.notna(v) and math.isfinite(float(v)) and v > 0
+                       and float(v).is_integer() for v in values):
+                return None
+            return float(values.iloc[0]) if values.nunique() == 1 else None
+
+        capacity = common_capacity(matches)
+        if capacity is not None:
+            return capacity
+        if matches.empty:
+            return None
+
+        if car_id is not None:
+            if "car_id" not in matches.columns:
+                return None
+            # Numeric IDs tolerate the equivalent JSON forms 7, "7", and 7.0.
+            try:
+                wanted_id = float(car_id)
+            except (TypeError, ValueError):
+                matches = matches[matches["car_id"].astype(str).str.strip()
+                                  == str(car_id).strip()]
+            else:
+                if not math.isfinite(wanted_id):
+                    return None
+                matches = matches[pd.to_numeric(matches["car_id"], errors="coerce")
+                                  == wanted_id]
+            capacity = common_capacity(matches)
+            if capacity is not None:
+                return capacity
+            if matches.empty:
+                return None
+
+        if claimed_price is None or "price_per_day" not in matches.columns:
+            return None
+        try:
+            wanted_price = float(claimed_price)
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(wanted_price):
+            return None
+        prices = pd.to_numeric(matches["price_per_day"], errors="coerce")
+        # Prices are released to cents. This tolerates representation noise, not a
+        # nearest-price guess or rounding a fabricated quote to a real record.
+        matches = matches[(prices - wanted_price).abs() <= 1e-6]
+        return common_capacity(matches)
     
     def get_open_hours(self, attraction_name: str, city: str) -> Optional[str]:
         """获取景点营业时间"""

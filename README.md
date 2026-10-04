@@ -2,22 +2,25 @@
 
 TREK is a benchmark for **feasible itinerary synthesis** — producing a *single* travel plan that is
 jointly (a) constraint-correct, (b) hallucination-free, (c) spatio-temporally executable, (d)
-budget-valid, and (e) responsive to a traveler's *unstated* persona needs, all at once.
+budget-valid, and (e) responsive to the facility requirements operationalized for stated traveler
+personas, all at once.
 
 What makes TREK different from prior travel benchmarks:
 
 - **A fully deterministic, rule-based evaluator — no LLM judge.** Every score is an exact computation
   against a versioned knowledge base, so results are bit-reproducible and free to re-run.
-- **A human-verified gold that provably reaches the ceiling.** Every one of the 800 tasks ships with a
-  gold reference that scores a perfect **1.0** under the same evaluator, so any agent-to-1.0 gap is a
-  model limitation, not scorer strictness. You can verify this yourself in one command (below).
+- **Gold references with an attainable ceiling under TREK's rules.** The 533 feasible tasks ship
+  with human-validated reference itineraries, and the 267 infeasible tasks with typed refusal
+  references. All 800 references attain **1.0** on applicable correctness dimensions under the
+  published evaluator. You can verify this in one command (below).
 - **Typed infeasibility.** 267 of the 800 tasks are *provably* infeasible with a machine-checkable
   cause (route / entity / budget); a correct agent must refuse **and name the right reason**.
 - **A production-style tool sandbox.** Agents act through validated RESTful search endpoints with
   structured errors, not free-form database lookups.
 
-The benchmark comprises **800 tasks** (533 feasible, 267 infeasible) over a synthetic, internally
-consistent knowledge base of **212,530 records** across **375 cities** and **13 personas**.
+The benchmark comprises **800 tasks** (533 feasible, 267 infeasible) over a fixed, source-informed
+sandbox knowledge base with synthetic identifiers and calibrated structural fields:
+**212,530 records** across **375 cities** and **13 personas**.
 
 ---
 
@@ -27,6 +30,7 @@ consistent knowledge base of **212,530 records** across **375 cities** and **13 
 .
 ├── verify_gold.py          # one-command proof that the gold reaches 1.0 (offline, no keys)
 ├── score_trek.py           # the deterministic evaluator (CLI)
+├── test_vehicle_capacity.py # offline regression tests for KB-backed capacity checks
 ├── run_trek.py             # the agent runner (Amazon Bedrock function-calling agent)
 ├── scoring.py              # the 9-dimension scorer (imported by score_trek.py)
 ├── implicit_scoring.py     # D1 implicit-need scorer (deterministic set-intersection)
@@ -125,7 +129,7 @@ python score_trek.py --results-dir trek_results --out-dir trek_scores
 ## The evaluator
 
 Every submission is scored on **nine correctness dimensions** in four categories, plus a separate
-efficiency (cost) axis:
+efficiency (resource-usage) axis:
 
 | Category | Dimensions | Question |
 |---|---|---|
@@ -138,6 +142,15 @@ The four categories combine with a **geometric mean**, and the headline metric i
 rate**: the fraction of tasks solved on *every* applicable dimension (reported separately over the 533
 feasible and 267 infeasible tasks). D1 (implicit needs) is scored by deterministic facility
 set-intersection — no embeddings, no LLM. Full definitions are in the paper.
+
+When a task requires rental cars, D0-key also requires a car in each requested stay city with
+KB-backed passenger capacity at least the larger of the party size and requested capacity. An
+agent's claimed capacity is not accepted as evidence. This check remains within D0-key's existing
+all-or-nothing conjunction; it adds no new dimension or validity gate. Run its offline tests with:
+
+```bash
+python test_vehicle_capacity.py -v
+```
 
 ---
 
@@ -163,14 +176,21 @@ or two bare lines); it is git-ignored. See `trek_agent/credentials.py`.
 
 - **Tasks**: `trek_queries.csv` (800) and `trek_gold.jsonl` (800 gold references).
 - **Knowledge base**: `api/data/v2/` — 107,195 flights, 39,396 hotels, 55,814 attractions, 10,125 car
-  rentals over 375 cities. Fully synthetic and internally consistent; the city/airport scaffold derives
-  from the public-domain [OurAirports](https://ourairports.com/data/) dataset.
-- **Results**: `results/leaderboard.csv` and `results/scores_summary.json` (our reported run).
+  rentals over 375 cities. The released snapshot combines author-curated, de-identified input values,
+  synthetic identifiers, and selected calibrated fields; the city/airport scaffold derives from the
+  public-domain [OurAirports](https://ourairports.com/data/) dataset. No real travelers' personal data
+  or travel histories are included, and evaluation performs no live booking-platform lookup.
+- **Results**: `results/scores_summary.json` contains the complete aggregate results;
+  `results/scores_summary.csv` and `results/leaderboard.csv` contain the matching CSV summary.
+  The 15 `results/trek_*.scores.csv` files contain all 800 per-task scores for each model,
+  including the KB-backed D0-key vehicle-capacity check. These scores re-evaluate the existing
+  model outputs; the tasks, KB snapshot, and model outputs are unchanged.
 
 Code is released under the **MIT License**; the dataset under **CC BY 4.0**. See [`LICENSE`](LICENSE).
 The synthetic prices, schedules, and availability **must not be used as real travel information**.
 
 ## Citation
 
-This repository accompanies a paper currently **under double-blind review**. Author and venue
-details are withheld during the review period; a full citation will be added on acceptance.
+This anonymous snapshot accompanies a manuscript submitted for **double-blind review through
+ACL Rolling Review (ARR)**. Author details are withheld in this snapshot; a full citation will be
+added after review.

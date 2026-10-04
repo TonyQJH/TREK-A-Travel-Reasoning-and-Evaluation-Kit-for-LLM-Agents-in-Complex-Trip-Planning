@@ -623,6 +623,34 @@ class TravelPlanScorer:
                 if any((c.get("type") or c.get("car_type") or "").lower() == req_type.lower() 
                        for c in plan_data["cars"]):
                     matched += 1
+
+            # The generator selects a capacity-compliant car in EVERY stay city, and
+            # the shared cost model bills car-days per stay city. Enforce that same
+            # requirement here, inside D0-key's existing all-or-nothing conjunction.
+            # A good car cannot mask another undersized/unresolvable booking in its
+            # city; a missing booking cannot borrow the D3 imputed cheapest-car cost.
+            try:
+                needed_capacity = max(float(meta.person_num),
+                                      float(meta.req_car.get("capacity") or 0))
+            except (TypeError, ValueError):
+                needed_capacity = None
+            capacity_known = (needed_capacity is not None
+                              and math.isfinite(needed_capacity) and needed_capacity > 0)
+            if not _stay_cities:
+                checks.append(("car_capacity_in_city", "missing_stay_city"))
+            for city in _stay_cities:
+                checks.append(("car_capacity_in_city", city))
+                bookings = [car for car in plan_data["cars"]
+                            if _fold(str(car.get("city") or "")) == _fold(city)]
+                if not capacity_known or not bookings:
+                    continue
+                capacities = [self.db.get_car_capacity(
+                    car.get("type") or car.get("car_type"), car.get("city"),
+                    car_id=car.get("car_id"), claimed_price=car.get("price_per_day"))
+                    for car in bookings]
+                if all(capacity is not None and capacity >= needed_capacity
+                       for capacity in capacities):
+                    matched += 1
         
         # 检查景点约束 (新增)
         if meta.req_attraction:
